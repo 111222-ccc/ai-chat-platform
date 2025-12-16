@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全能AI问答平台（公网可用）</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #f0f8fb; min-height: 100vh; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2d3748; text-align: center; margin-bottom: 20px; font-size: 24px; }
+        textarea { width: 100%; height: 120px; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; resize: none; margin-bottom: 20px; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #4299e1; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        #answer { margin-top: 20px; padding: 20px; background: #f8fafc; border-radius: 8px; display: none; white-space: pre-wrap; line-height: 1.8; color: #1a202c; }
+        .loading { color: #4299e1; text-align: center; padding: 20px; }
+        .error { background: #fef2f2; color: #dc2626; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌍 全能AI问答平台</h1>
+        <textarea id="question" placeholder="请输入你的问题（比如：全球变暖的危害？Python怎么入门？）"></textarea>
+        <button id="submit">获取解答</button>
+        <div id="answer"></div>
+    </div>
+
+    <script>
+        // 核心：使用无跨域限制的国内AI接口（公网直接访问）
+        const AI_API = "https://api.xiaodingai.com/v1/chat/completions";
+        let isLoading = false;
+
+        // 发送请求获取回答
+        async function getAnswer(question) {
+            try {
+                const res = await fetch(AI_API, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        model: "gpt-3.5-turbo",
+                        messages: [{ role: "user", content: question }],
+                        temperature: 0.7
+                    })
+                });
+                const data = await res.json();
+                return data.choices?.[0]?.message?.content || "暂无回答";
+            } catch (err) {
+                return `获取失败：${err.message}`;
+            }
+        }
+
+        // 绑定按钮事件
+        document.getElementById("submit").addEventListener("click", async () => {
+            const question = document.getElementById("question").value.trim();
+            const submitBtn = document.getElementById("submit");
+            const answerBox = document.getElementById("answer");
+
+            if (!question) {
+                alert("请输入问题！");
+                return;
+            }
+            if (isLoading) return;
+
+            // 加载状态
+            isLoading = true;
+            submitBtn.disabled = true;
+            answerBox.style.display = "block";
+            answerBox.className = "";
+            answerBox.innerHTML = '<div class="loading">AI正在思考...</div>';
+
+            // 获取并显示回答
+            const answer = await getAnswer(question);
+            answerBox.innerHTML = answer;
+            if (answer.includes("失败")) answerBox.className = "error";
+
+            // 恢复状态
+            isLoading = false;
+            submitBtn.disabled = false;
+        });
+
+        // 回车提交（Ctrl+Enter）
+        document.getElementById("question").addEventListener("keydown", (e) => {
+            if (e.ctrlKey && e.key === "Enter") document.getElementById("submit").click();
+        });
+    </script>
+</body>
+</html>
